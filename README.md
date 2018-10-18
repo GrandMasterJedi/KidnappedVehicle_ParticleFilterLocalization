@@ -1,3 +1,9 @@
+[image1]: ./doc/1_FlowFilter.png "im1"
+[image1]: ./doc/2_PseudoCodeFilter.png "im2"
+
+
+
+
 # Kidnapped Vehicle: A Particle Filter Demo for Vehicle Localization
 
 A robot has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
@@ -6,13 +12,18 @@ In this project I implement a 2 dimensional particle filter in C++ to dynamicall
 
 This project is my solution to Udacity term 2.2 assignment. `src/particle_filter.cpp` contains the implementation and  `src/main.cpp` governs the requirements on accuracy and run time as per [project assignment](https://review.udacity.com/#!/rubrics/747/view).
 
-## Output of my Implementation
+
+## Localization Output
 
 
 
 
+## Particle Filter Implementation Notes
+The algorithm processing follows the following steps
+![alt text][image1]
 
-
+Below is the pseudocode of the Particle Filter implementation
+![alt text][image2]
 
 
 
@@ -25,17 +36,17 @@ This project is my solution to Udacity term 2.2 assignment. `src/particle_filter
 
 Once the install for uWebSocketIO is complete, the main program can be built and ran by doing the following from the project top directory.
 
-1. mkdir build
-2. cd build
-3. cmake ..
-4. make
-5. ./particle_filter
-
-Alternatively some scripts have been included to streamline this process, these can be leveraged by executing the following in the top directory of the project:
-
-1. ./clean.sh
-2. ./build.sh
-3. ./run.sh
+```sh
+mkdir build && cd build
+cmake .. && make
+./particle_filter
+```
+Alternatively some scripts have been included to streamline this process:
+```sh
+./clean.sh
+./build.sh
+./run.sh
+```
 
 ---
 ## Data
