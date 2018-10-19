@@ -1,5 +1,5 @@
 [image1]: ./doc/1_FlowFilter.png "im1"
-[image1]: ./doc/2_PseudoCodeFilter.png "im2"
+[image2]: ./doc/2_PseudoCodeFilter.png "im2"
 
 
 
@@ -34,7 +34,7 @@ Below is the pseudocode of the Particle Filter implementation
 
 ## Running the Code
 
-Once the install for uWebSocketIO is complete, the main program can be built and ran by doing the following from the project top directory.
+Once the installation for uWebSocketIO is complete, the main program can be built and ran from the project top directory.
 
 ```sh
 mkdir build && cd build
@@ -49,17 +49,11 @@ Alternatively some scripts have been included to streamline this process:
 ```
 
 ---
-## Data
+## Data Requirement
 
-### The Map*
-`map_data.txt` includes the position of landmarks (in meters) on an arbitrary Cartesian coordinate system. Each row has three columns
-1. x position
-2. y position
-3. landmark id
-
-### All other data the simulator provides, such as observations and controls.
-
-> * Map data provided by 3D Mapping Solutions GmbH.
+Data consists of the following
+*  The map (data provided by 3D Mapping Solutions GmbH): `map_data.txt` includes the position of landmarks (in meters) on an arbitrary Cartesian coordinate system. Each row has three columns: (1) x position, (2) y position, and (3) landmark id
+* Observations and controls provided by Udacity simulator
 
 
 ### Data Flow Between the Filter and the Simulator
@@ -98,6 +92,5 @@ Success! Your particle filter passed!
 
 ---
 ## References
-* Tips for setting up your environment can be found [here](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/23d376c7-0195-4276-bdf0-e02f1f3c665d)
-
-* Project [rubric](https://review.udacity.com/#!/rubrics/747/view)
+* [Coordinate transformation introduction](https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm)
+* [Coordinate transformation formula](http://planning.cs.uiuc.edu/node99.html) 

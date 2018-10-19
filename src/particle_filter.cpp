@@ -64,6 +64,9 @@ void ParticleFilter::prediction(double dt, double std_pos[], double velocity, do
   	std::normal_distribution<double> noise_y(0, std_pos[1]);
   	std::normal_distribution<double> noise_theta(0, std_pos[2]);
 
+  	// Random number generator in std::mt19937 std
+    default_random_engine ngen;
+
   	// Predict position of each particle based on polar to cartesian coordinate conversion formula 
   	for (int i = 0; i < num_particles; i++) {
   		Particle &p = particles[i];  
@@ -81,9 +84,9 @@ void ParticleFilter::prediction(double dt, double std_pos[], double velocity, do
 	    }
 
 	    // add noise
-	    p.x += noise_x(gen);
-	    p.y += noise_y(gen);
-	    p.theta += noise_theta(gen);
+	    p.x += noise_x(ngen);
+	    p.y += noise_y(ngen);
+	    p.theta += noise_theta(ngen);
 	}
 
 }
@@ -103,7 +106,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 		LandmarkObs &pred = predicted[0];
 		// initiate closest landmark id and landmark distance to the first predicted landmark
 		obs.id = pred.id;
-		mindist = dist(obs.x, obs.y, pred.x, pred.y)
+		mindist = dist(obs.x, obs.y, pred.x, pred.y);
 		
 		for (int j = 1; j < predicted.size(); j++) {
 
@@ -147,7 +150,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		vector<LandmarkObs> observed;
 		for (int j=0; j < nobs; j++) {
 			// observations contains observed landmarks
-			LandmarkObs &obs = observations[j];
+			const LandmarkObs &obs = observations[j];
 			LandmarkObs tobs;
 			
 			tobs.id =  obs.id;
@@ -163,53 +166,64 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     	// it contains all the landmarks
 		vector<LandmarkObs> predicted;
 		for (int k=0; k < nldm; k++) {
-			LandmarkObs lm = map_landmarks.landmark_list[k]
+			const Map::single_landmark_s lm = map_landmarks.landmark_list[k];
 			
 			// Check distance of the particle to each landmark
-			double dx = fabs(lm.x_f - p.x);
-			double dy = fabs(lm.y_f - p.y);
-			// first rough landmark filter based on x and y distance and compare to sensor_range that is max distance
-			if (dx <= sensor_range && dy <= sensor_range) {
-				// add landmark 
-				predicted.push_back(lm);
+			double idist = dist(p.x, p.y, lm.x_f, lm.y_f);
+			// double dx = fabs(lm.x_f - p.x);
+			// double dy = fabs(lm.y_f - p.y);
+
+			// first  landmark filter based distance and compare to sensor_range that is max distance
+			if (idist <= sensor_range) {
+				// add landmark
+				LandmarkObs lm_;
+				lm_.id = lm.id_i;
+				lm_.x = lm.x_f;
+				lm_.y = lm.y_f;
+				predicted.push_back(lm_);
       		}
 		}
-		// Associate observed landmark to nearest map landmarks (all in global map coordinates)
+		// data association will below will associate each observed landmark 
+		// to the one nearest map landmarks (all in global map coordinates) by changing 
+		// the observed.id
 		dataAssociation(predicted, observed);
 
 		//######################### Calculate weight of the particle ##############################
 		// use multivariate Gaussian probability function
-		// initialize
-    	p.weight = 1.0;
+		// the measurement has noise govererned by gaussian distribution
+		// Use importance sampling
 
-    // double sigma_x = std_landmark[0];
-    // double sigma_y = std_landmark[1];
-    // double sigma_x_2 = pow(sigma_x, 2);
-    // double sigma_y_2 = pow(sigma_y, 2);
+		// initialize weight of the particle
+    	p.weight = 1.0;
     	
     	double normalize = (1.0/(2.0 * M_PI * sig_x * sig_y));
-    	double exponent;
+    	double gexp;
     	double prob;
 
-    	// To Check: if following loops are needed
-        for (int j = 0; k < nobs; k++) {
-        	LandmarkObs tobs = observed[k] 
-        	
-	      	for (int h = 0; h < predicted.size(); h++) {
-	      		LandmarkObs lm = predicted[h];
-		    
-	        	if (tobs.id == lm.id) {
-	        		exponent = 0.5*( pow((tobs.x - lm.x)/sig_x, 2) + pow((tobs.y - lm.y)/sig_y, 2) );
-	          		prob = normalize * exp(-exponent);
+    	// Loop each observed landmark
+        for (int j = 0; j < nobs; j++) {
+        	int idobs = observed[j].id;   	
+	      	for (int k = 0; k < predicted.size(); k++) {
+	      		int idpred = predicted[k].id;    
+	        	if (idobs == idpred) {
+	        		LandmarkObs tobs = observed[j]; // observed landmark in map coord
+	      			LandmarkObs lm = predicted[k];  // target landmark in map coord
+
+	      			// compute difference of obsered and target
+	      			// double tdist = dist(tobs.x, tobs.y, lm.x, lm.y);
+
+	      			// gaussian kernel probability of the landmark measurement
+	        		gexp = 0.5*( pow((tobs.x - lm.x)/sig_x, 2) + pow((tobs.y - lm.y)/sig_y, 2) );
+	          		prob = normalize * exp(-gexp);
 	          		p.weight *= prob;   // check algorithm in lecture notes
 
-	          		totParticleWeight += p.weight
+	          		totParticleWeight += p.weight;
 	        	}
 	        }
 	    }
 	}
 
-	// Normalize the weights to [0, 1]
+	// Normalize the weights to [0, 1] and summing to 1
   	for (int i = 0; i < particles.size(); i++) {
   		particles[i].weight /= totParticleWeight;
     	weights[i] = particles[i].weight;
@@ -218,12 +232,40 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 }
 
 void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight. 
-	// NOTE: You may find std::discrete_distribution helpful here.
-	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+	// Resample particles with replacement with probability proportional to their weight. 
+	// Use Importance sampling algorithm (resampling wheel method) 
+	// * Resampled is basically the Bayesian posterior
+	// * The global weights contains already all particle weights normalized
 
+    //Find the max_weight 
+    // double max = *max_element(vector.begin(), vector.end()); * because otherwise
+    // it will return an iterator
+    double max_weight =  *std::max_element(weights.begin(), weights.end());
 
-	// Bayesian posterior
+    // Random number generator in std::mt19937 std
+    default_random_engine ngen;
+    
+    // Class instances of uniform int and uniform double for index and 2*max weight
+    std::uniform_int_distribution<int> index_dist(0, num_particles);
+    std::uniform_real_distribution<double> beta_dist(0, 2*max_weight);
+    std::vector<Particle> resampled_particles;
+
+    int index = index_dist(ngen);
+    double beta = 0.0;
+    
+    // Wheel draw
+    for (int i =0; i< num_particles; i++)
+    {
+        beta += beta_dist(ngen);
+        while (beta > weights[index])
+        {
+            beta -= weights[index];
+            index = (index +1) % num_particles;
+        }
+        resampled_particles.push_back(particles[index]);
+    }
+
+    particles = resampled_particles;
 
 }
 
