@@ -16,7 +16,7 @@ This project is my solution to Udacity term 2, assignment 3. `src/particle_filte
 
 
 ## Output 
-At each time step, the likelihood of each n particle is estimated based on observed distance (lidar) and calculated distance to landmarks on the map (black circles). Importance sampling is applied to filter those particles which are most likely, reppresenting the position of the vehicle on the map. Error rates are calculated at each time step. The Simulator interface output looks like below. 
+At each time step, the likelihood of each `n` particle is estimated based on observed distance (Lidar) and calculated distance to landmarks on the map (black circles). Importance sampling is applied to filter those particles which are most likely, representing the position of the vehicle on the map. Error rates are calculated at each time step. The Simulator interface output looks like below，with `n = 400` in the example. 
 ![alt text][image3]
 
 If the filter localizes the object and detect its yaw within the error range (values specified in the parameters `max_translation_error` and `max_yaw_error` in `src/main.cpp`) within the time of 100 seconds, the Simulator will output the message:
@@ -36,7 +36,7 @@ Below is the pseudocode of the Particle Filter implementation
 ---
 ## Dependencies
 * Udacity [Term 2 Simulator](https://github.com/udacity/self-driving-car-sim/releases)
-* uWebSocketIO. Run `install-mac.sh` or `install-ubuntu.sh` to set up and install  for either Linux or Mac systems. For windows you can use either Docker, VMware, or even Windows 10 Bash on Ubuntu to install uWebSocketIO.
+* uWebSocketIO. Run `install-mac.sh` or `install-ubuntu.sh` to set up and install for either Linux or Mac systems. For windows you can use either Docker, VMware, or even Windows 10 Bash on Ubuntu to install uWebSocketIO.
 
 ## Running the Code
 
@@ -89,4 +89,4 @@ Once the Simulator is installed. The main protocol that main.cpp uses for uWebSo
 ---
 ## References
 * [Coordinate transformation introduction](https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm)
-* [Coordinate transformation formula](http://planning.cs.uiuc.edu/node99.html) 
+* [Coordinate transformation formula](http://planning.cs.uiuc.edu/node99.html)
