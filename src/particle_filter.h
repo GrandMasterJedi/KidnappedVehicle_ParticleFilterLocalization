@@ -50,6 +50,9 @@ public:
 	// Destructor
 	~ParticleFilter() {}
 
+
+	double ParticleFilter::normpdf(double x, double mu, double std);
+
 	/**
 	 * init Initializes particle filter by initializing particles to Gaussian
 	 *   distribution around first position and all the weights to 1.
@@ -70,7 +73,7 @@ public:
 	 * @param velocity Velocity of car from t to t+1 [m/s]
 	 * @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
 	 */
-	void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
+	void prediction(double dt, double std_pos[], double velocity, double yaw_rate);
 	
 	/**
 	 * dataAssociation Finds which observations correspond to which landmarks (likely by using
