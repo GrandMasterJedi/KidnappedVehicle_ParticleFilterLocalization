@@ -51,7 +51,7 @@ public:
 	~ParticleFilter() {}
 
 
-	double ParticleFilter::normpdf(double x, double mu, double std);
+	double normpdf(double x, double mu, double std);
 
 	/**
 	 * init Initializes particle filter by initializing particles to Gaussian
