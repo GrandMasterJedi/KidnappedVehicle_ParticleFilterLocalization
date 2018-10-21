@@ -61,11 +61,6 @@ void ParticleFilter::prediction(double dt, double std_pos[], double velocity, do
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 	
-	// // define gaussian sensor noise
-  	std::normal_distribution<double> noise_x(0, std_pos[0]);
-  	std::normal_distribution<double> noise_y(0, std_pos[1]);
-  	std::normal_distribution<double> noise_theta(0, std_pos[2]);
-
 
   	// Predict position of each particle based on polar to cartesian coordinate conversion formula 
   	for (int i = 0; i < num_particles; i++) {
@@ -73,24 +68,28 @@ void ParticleFilter::prediction(double dt, double std_pos[], double velocity, do
   		// p is a reference to particle[i], introduced for name convenience 
 	    
 	    // calculate new state
-	    if (fabs(yaw_rate) < 1e-6) { // yaw_rate == 0  
-	      	particles[i].x += (velocity * dt * cos(particles[i].theta);
-	      	particles[i].y += (velocity * dt * sin(particles[i].theta));
+	    double theta_prime = (yaw_rate * dt);
+		double tx = particles[i].x;
+      	double ty = particles[i].y;
+      	double ttheta = particles[i].theta;
+	    if (fabs(yaw_rate) < 1e-10) { // yaw_rate == 0  
+	      	tx += (velocity * dt * cos(ttheta));
+	      	ty += (velocity * dt * sin(ttheta));
 	    } 
 	    else { // yaw_rate!=0
-	    	double theta_prime = (yaw_rate * dt);
-	    	particles[i].x += ( (velocity / yaw_rate) * (sin(particles[i].theta + theta_prime) - sin(particles[i].theta)) );
-	      	particles[i].y += ( (velocity / yaw_rate) * (cos(particles[i].theta) - cos(particles[i].theta + theta_prime)) );
-	      	particles[i].theta += theta_prime;
+	    	tx += ( (velocity / yaw_rate) * (sin(ttheta + theta_prime) - sin(ttheta)) );
+	      	ty += ( (velocity / yaw_rate) * (cos(ttheta) - cos(ttheta + theta_prime)) );
+	      	ttheta += theta_prime;
 	    }
-
-	    // add noise
-	    particles[i].x += noise_x(igen);
-	    particles[i].y += noise_y(igen);
-	    particles[i].theta += noise_theta(igen);
+        std::normal_distribution<double> noise_x(tx, std_pos[0]);
+  		std::normal_distribution<double> noise_y(ty, std_pos[1]);
+  		std::normal_distribution<double> noise_theta(ttheta, std_pos[2]);
+	    
+	    // noisy estimates
+	    particles[i].x = noise_x(igen);
+	    particles[i].y = noise_y(igen);
+	    particles[i].theta = noise_theta(igen);
 	}
-
-
 
 }
 
@@ -131,12 +130,12 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// 	observations[i].id = id;
 	// }
 
-	// need to check if reference of reference 
+	// Above code has been nested in updateWeights
 }
 
 double ParticleFilter::normpdf(double x, double mu, double std) {
 	double expo = exp(-0.5*((x-mu)/std)*((x-mu)/std));
-	double pdf = (1.0/sqrt(2*3.1415926)/std)*expo;
+	double pdf = (1.0/sqrt(2*M_PI)/std)*expo;
     return pdf;
 }
 
@@ -153,19 +152,17 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   http://planning.cs.uiuc.edu/node99.html
 	*/
 
-	// double sig_x = std_landmark[0];
-	// double sig_y = std_landmark[1];
-
 	int nobs = observations.size(); 
 	int nldm = map_landmarks.landmark_list.size();
 
-	std::cout << "Number of particles:  " << num_particles << std::endl;
-	std::cout << "Number of observed landmarks:  " << nobs << std::endl;
-	std::cout << "Total number of landmarks:  " << nldm << std::endl;
+	// std::cout << "Number of particles:  " << num_particles << std::endl;
+	// std::cout << "Number of observed landmarks:  " << nobs << std::endl;
+	// std::cout << "Total number of landmarks:  " << nldm << std::endl;
 
 	double totParticleWeight = .0;	
 
 	vector<LandmarkObs> observed; // observed landmarks in global map coordinates
+	vector<LandmarkObs> possibleObserved; // observed landmarks in global map coordinates
 	vector<LandmarkObs> possibeLands; // possible landmarks associated 
 
 	// Loop each particle in particles, that have been initialized 
@@ -174,15 +171,18 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 		observed.clear();
 		possibeLands.clear();
+		possibleObserved.clear();
 		// Convert observed landmark coordinates in relation to the location of each particle into global map coordinates 
 		for (int j=0; j < nobs; j++) {
 			// observations contains observed landmarks
 			LandmarkObs obs = observations[j];
+			double ttheta = particles[i].theta;
 			LandmarkObs tobs;
 			tobs.id =  obs.id;
-			tobs.x =particles[i].x + cos(particles[i].theta)*obs.x - sin(particles[i].theta)*obs.y;
-			tobs.y =particles[i].y + sin(particles[i].theta)*obs.x + cos(particles[i].theta)*obs.y;
+			tobs.x =particles[i].x + cos(ttheta)*obs.x - sin(ttheta)*obs.y;
+			tobs.y =particles[i].y + sin(ttheta)*obs.x + cos(ttheta)*obs.y;
 			observed.push_back(tobs);
+
 		}
 
     	//########################## Filter landmarks with the nearest neighbor ##################
@@ -196,8 +196,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			// Check distance of the particle to each landmark
 			double idist = dist(particles[i].x, particles[i].y, lm.x_f, lm.y_f);
 			
-			// Only landmarks within sensor range from particle (vehicle) are considered, allow 2*sensor range because of possible measurement
-			if (idist <= 2*sensor_range) {
+			// Only landmarks within sensor range from particle (vehicle) are considered, allow 1.5*sensor range because of possible measurement error
+			if (idist <= 1.5*sensor_range) {
 				// add landmark object
 				LandmarkObs lm_;
 				lm_.id = lm.id_i;
@@ -208,86 +208,58 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 
 		int np = possibeLands.size();
-		// std::cout << "Possible number of landmarks:  " << np << std::endl;
-		// data association will below will associate each observed landmark 
-		// to the one nearest map landmarks (all in global map coordinates) by changing 
-		// the observed.id
-
-		// if (np == 0) return; // this particle is not possible
+		if (np == 0) cout << "Warning: No landmark possible for a particle i = " << i << endl; // this particle is not possible
 		// if (np > 0) dataAssociation(predicted, observed);
 
+		for (int k=0; k < nobs; k++) {
+			LandmarkObs oblm = observed[k];
+			// Check distance of the particle to each observed landmark
+			double idist = dist(particles[i].x, particles[i].y, oblm.x, oblm.y);
+			
+			// Only landmarks within sensor range from particle (vehicle) are considered, allow 1.5*sensor range because of possible measurement error
+			if (idist <= 1.2*sensor_range) {
+				// add landmark object
+				LandmarkObs oblm_ = oblm;
+				possibleObserved.push_back(oblm_);
+   			}
+   			else {
+   				cout << "Warning: Observed landmark coordinates not possible check landmark ID = " << oblm.id << endl;
+   			}
+		}
+		int npo = possibleObserved.size();
+		
 
 
 		// ########################### Associate observed Landmarks with possible predicted and weight particle 
-		double minDist = sensor_range; 
-        double minDist_x = 0.0;
-        double minDist_y = 0.0;
+		double minDist = 1.5*sensor_range; 
+        double minDist_x = sensor_range;
+        double minDist_y = sensor_range;
 
-        for (int j=0; j < nobs; j++) {
+        double pweight = 1.0;
+        for (int j=0; j < npo; j++) {
             for (int k=0; k < np; k++) {
-                // Calculate Euclidean distance (nearest neighbour)
-                double tdist = dist( observed[j].x, observed[j].y, possibeLands[k].x, possibeLands[k].y);
-
-                if ( (k==0) || (tdist < minDist) ) { // Better candidate found
+                // Calculate Euclidean distance 
+                double tdist = dist( possibleObserved[j].x, possibleObserved[j].y, possibeLands[k].x, possibeLands[k].y);
+                if ( (k==0) || (tdist < minDist) ) { // nearest neighbor
                     minDist = tdist;
-                    minDist_x = fabs(possibeLands[k].x - observed[j].x);
-                    minDist_y = fabs(possibeLands[k].x - observed[j].x);
+                    minDist_x = fabs(possibeLands[k].x - possibleObserved[j].x);
+                    minDist_y = fabs(possibeLands[k].y - possibleObserved[j].y);
                 }
             }
             // Joint likelihood
-            particles[i].weight *= normpdf(minDist_x, 0.0, std_landmark[0]) * normpdf(minDist_y, 0.0, std_landmark[1]);
+            pweight *=  normpdf(minDist_x, 0.0, std_landmark[0]) * normpdf(minDist_y, 0.0, std_landmark[1]);
         } 
 
-		//######################### Calculate weight of the particle ##############################
-		// use multivariate Gaussian probability function
-		// the measurement has noise govererned by gaussian distribution
-		// Use importance sampling
-
-		// // initialize weight of the particle
-  //   	double pweight = 1.0;
-    	
-  //   	// // double gnorm = (1.0/(2.0 * M_PI * sig_x * sig_y));
-  //   	// double gexpo;
-  //   	// double prob;
-
-  //   	// Loop each observed landmark
-  //       for (int j = 0; j < nobs; j++) {
-  //       	int idobs = observed[j].id;   	
-  //       	// std::cout << "observed landmark id:  " << idobs << std::endl;
-	 //      	for (size_t k = 0; k < predicted.size(); k++) {
-	 //      		int idpred = predicted[k].id;    
-	 //        	if (idobs == idpred) {
-
-	 //        		LandmarkObs tobs = observed[j]; // observed landmark in map coord
-	 //      			LandmarkObs lm = predicted[k];  // target landmark in map coord
-
-	 //      			// compute difference of obsered and target
-	 //      			// double tdist = dist(tobs.x, tobs.y, lm.x, lm.y);
-
-	 //      			// gaussian kernel probability of the landmark measurement
-	 //      			double gexpo = (pow(tobs.x - lm.x, 2))/(2*pow(sig_x, 2)) + pow(tobs.y - lm.y, 2)/(2*pow(sig_y, 2));
-		// 			double prob = exp(-gexpo) / (2 * M_PI * sig_x * sig_y);
-	 //        		// gexpo = pow( (tobs.x - lm.x)/sig_x, 2) + pow((tobs.y - lm.y)/sig_y, 2);
-	 //          // 		prob = gnorm * exp(-0.5*gexpo);
-
-		// 			// std::cout << "distx, sigx :  " << tobs.x - lm.x << ","  << sig_x << std::endl;
-		// 			// std::cout << "disty, sigy :  " << tobs.y - lm.y << ","  << sig_y << std::endl;
-
-	 //          		// avoid multiplying by 0
-		// 		    // if (prob < 1e-4) {
-		// 		    // 	// std::cout << "Warning: probability landmark measurement = " << prob << std::endl;
-		// 		    // 	prob = 1e-4; 
-		// 		    // }		
-	 //          		pweight *= prob;   // joint probability of all observing all landmark correctly
-	 //        	}
-	 //        }
-	 //    }
-
-	    totParticleWeight += particles[i].weight;
+	    totParticleWeight += pweight;
+	    particles[i].weight = pweight;
 
 	    // std::cout << "Particle weight:   "<< p.weight << std::endl;
 	    // std::cout << "Total Particle Weight =  " << totParticleWeight << std::endl;
 	}
+
+	if (fabs(totParticleWeight < 1e-4)) cout << "Warning: Total weight close to 0" << endl;
+
+	weights.clear();
 
 	// Normalize the weights to [0, 1] and summing to 1
   	for (int i = 0; i < num_particles; i++) {
@@ -309,8 +281,8 @@ void ParticleFilter::resample() {
     double max_weight =  *std::max_element(weights.begin(), weights.end());
 
     
-    // Class instances of uniform int and uniform double for index and 2*max weight
-    std::uniform_int_distribution<int> index_dist(0, num_particles-1);
+    // // Class instances of uniform int and uniform double for index and 2*max weight
+    std::uniform_int_distribution<int> index_dist(0, num_particles);
     std::uniform_real_distribution<double> beta_dist(0, 2*max_weight);
     std::vector<Particle> resampled_particles;
 
@@ -318,7 +290,7 @@ void ParticleFilter::resample() {
     double beta = 0.0;
     
     // Wheel draw
-    for (int i =0; i< num_particles; i++)
+    for (int i=0; i< num_particles; i++)
     {
         beta += beta_dist(igen);
         while (beta > weights[cindex]) {
@@ -330,8 +302,13 @@ void ParticleFilter::resample() {
 
     particles = resampled_particles;
 
-    std::cout << "Resampled Particle Max Weight = " << max_weight << std::endl;
-    std::cout << "Resampled Particles dimension = " << particles.size() << std::endl;
+    weights.clear();
+    for (int i=0; i < num_particles; i++) {
+		weights.push_back(particles[i].weight);
+	}
+
+    // std::cout << "Resampled Particle Max Weight = " << max_weight << std::endl;
+    // std::cout << "Resampled Particles dimension = " << particles.size() << std::endl;
 
 }
 

@@ -1,6 +1,8 @@
 [image1]: ./doc/1_FlowFilter.png "im1"
 [image2]: ./doc/2_PseudoCodeFilter.png "im2"
 
+[image3]: ./doc/LatestSuccessfulRun.png "im2"
+
 
 
 
@@ -10,13 +12,17 @@ A robot has been kidnapped and transported to a new location! Luckily it has a m
 
 In this project I implement a 2 dimensional particle filter in C++ to dynamically localize the robot. A map and some initial localization information are given (analogous to what a GPS would provide). At each time step the filter will also get observation and control data.
 
-This project is my solution to Udacity term 2.2 assignment. `src/particle_filter.cpp` contains the implementation and  `src/main.cpp` governs the requirements on accuracy and run time as per [project assignment](https://review.udacity.com/#!/rubrics/747/view).
+This project is my solution to Udacity term 2, assignment 3. `src/particle_filter.cpp` contains the implementation and  `src/main.cpp` governs the requirements on accuracy and run time as per [project assignment](https://review.udacity.com/#!/rubrics/747/view).
 
 
-## Localization Output
+## Output 
+At each time step, the likelihood of each n particle is estimated based on observed distance (lidar) and calculated distance to landmarks on the map (black circles). Importance sampling is applied to filter those particles which are most likely, reppresenting the position of the vehicle on the map. Error rates are calculated at each time step. The Simulator interface output looks like below. 
+![alt text][image3]
 
-
-
+If the filter localizes the object and detect its yaw within the error range (values specified in the parameters `max_translation_error` and `max_yaw_error` in `src/main.cpp`) within the time of 100 seconds, the Simulator will output the message:
+```
+Success! Your particle filter passed!
+```
 
 ## Particle Filter Implementation Notes
 The algorithm processing follows the following steps
@@ -34,18 +40,12 @@ Below is the pseudocode of the Particle Filter implementation
 
 ## Running the Code
 
-Once the installation for uWebSocketIO is complete, the main program can be built and ran from the project top directory.
+Once the installation for uWebSocketIO and the simulator is complete, the main program can be built and ran from the project top directory.
 
 ```sh
 mkdir build && cd build
 cmake .. && make
 ./particle_filter
-```
-Alternatively some scripts have been included to streamline this process:
-```sh
-./clean.sh
-./build.sh
-./run.sh
 ```
 
 ---
@@ -85,10 +85,6 @@ Once the Simulator is installed. The main protocol that main.cpp uses for uWebSo
 	* ["best_particle_sense_x"] <= list of sensed x positions
 	* ["best_particle_sense_y"] <= list of sensed y positions
 
-If the filter localizes the object and detect its yaw within the error range (values specified in the parameters `max_translation_error` and `max_yaw_error` in `src/main.cpp`) within the time of 100 seconds, the Simulator will output the message:
-```
-Success! Your particle filter passed!
-```
 
 ---
 ## References
